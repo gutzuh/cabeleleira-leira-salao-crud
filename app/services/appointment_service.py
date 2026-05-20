@@ -197,17 +197,6 @@ def delete_appointment(db: Session, appointment_id: int):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Agendamento com ID {appointment_id} não encontrado."
         )
-    
-    # regra de segurança: só deixa remover se faltar pelo menos 2 dias para o agendamento
-    time_difference = db_appointment.start_time - datetime.now()
-    if time_difference < timedelta(days=2):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "Não é possível excluir este agendamento pois faltam menos de 2 dias para a data marcada. "
-                "Exclusões ou cancelamentos com prazo inferior a 2 dias devem ser solicitados exclusivamente por telefone."
-            )
-        )
         
     db.delete(db_appointment)
     db.commit()
