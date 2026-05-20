@@ -197,8 +197,21 @@ def delete_appointment(db: Session, appointment_id: int):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Agendamento com ID {appointment_id} não encontrado."
         )
+    
+    # regra de segurança: só deixa remover se faltar pelo menos 2 dias para o agendamento
+    time_difference = db_appointment.start_time - datetime.now()
+    if time_difference < timedelta(days=2):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Não é possível excluir este agendamento pois faltam menos de 2 dias para a data marcada. "
+                "Exclusões ou cancelamentos com prazo inferior a 2 dias devem ser solicitados exclusivamente por telefone."
+            )
+        )
+        
     db.delete(db_appointment)
     db.commit()
+
 
 def list_appointments(
     db: Session,
@@ -237,6 +250,37 @@ def confirm_appointment(db: Session, appointment_id: int) -> AppointmentResponse
     db.refresh(db_appointment)
     
     return build_appointment_response(db_appointment)
+
+def cancel_appointment(db: Session, appointment_id: int) -> AppointmentResponse:
+    db_appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+    if not db_appointment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Agendamento com ID {appointment_id} não encontrado."
+        )
+    
+    # regra de segurança: só deixa cancelar se faltar pelo menos 2 dias para o agendamento
+    time_difference = db_appointment.start_time - datetime.now()
+    if time_difference < timedelta(days=2):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Não é possível cancelar este agendamento pois faltam menos de 2 dias para a data marcada. "
+                "Cancelamentos com prazo inferior a 2 dias devem ser solicitados exclusivamente por telefone."
+            )
+        )
+    
+    db_appointment.status = AppointmentStatus.CANCELADO
+    
+    # Também definimos todos os serviços vinculados a este agendamento como CANCELADO
+    for app_svc in db_appointment.services:
+        app_svc.status = AppointmentServiceStatus.CANCELADO
+        
+    db.commit()
+    db.refresh(db_appointment)
+    
+    return build_appointment_response(db_appointment)
+
 
 def update_service_status(
     db: Session, appointment_id: int, service_id: int, new_status: AppointmentServiceStatus

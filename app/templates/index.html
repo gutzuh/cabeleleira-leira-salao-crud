@@ -516,6 +516,7 @@
                     <button type="button" class="btn btn-outline-danger py-2 px-3" id="btnDeleteFromDet" onclick="deleteAppointmentFromDetails()"><i class="fa-solid fa-trash me-1"></i>Remover</button>
                     <div class="d-flex gap-2">
                         <button type="button" class="btn btn-secondary py-2 px-3" data-bs-dismiss="modal">Fechar</button>
+                        <button type="button" class="btn btn-outline-warning py-2 px-3" id="btnCancelFromDet" onclick="cancelAppointmentFromDetails()"><i class="fa-solid fa-ban me-1"></i>Cancelar</button>
                         <button type="button" class="btn btn-success py-2 px-3" id="btnConfirmFromDet" onclick="confirmAppointmentFromDetails()"><i class="fa-solid fa-check me-1"></i>Confirmar</button>
                     </div>
                 </div>
@@ -916,6 +917,13 @@
                                 </button>
                             `;
                         }
+                        if (app.status === "solicitado" || app.status === "confirmado") {
+                            actionButtons += `
+                                <button class="btn btn-sm btn-outline-warning me-1 py-1" onclick="cancelAppointment(${app.id})">
+                                    <i class="fa-solid fa-ban me-1"></i>Cancelar
+                                </button>
+                            `;
+                        }
                         actionButtons += `
                             <button class="btn btn-sm btn-outline-danger py-1" onclick="deleteAppointment(${app.id})">
                                 <i class="fa-solid fa-trash"></i>
@@ -1013,6 +1021,14 @@
                 btnConfirm.style.display = "none";
             }
 
+            // Exibir/Ocultar Botão de Cancelar de acordo com o status
+            const btnCancel = document.getElementById("btnCancelFromDet");
+            if (props.status === "solicitado" || props.status === "confirmado") {
+                btnCancel.style.display = "inline-block";
+            } else {
+                btnCancel.style.display = "none";
+            }
+
             const modal = new bootstrap.Modal(document.getElementById("appointmentDetailsModal"));
             modal.show();
         }
@@ -1022,13 +1038,35 @@
             if (!currentSelectedAppointmentId) return;
             try {
                 const response = await fetch(`${API_URL}/appointments/${currentSelectedAppointmentId}/confirm`, { method: "POST" });
-                if (!response.ok) throw new Error();
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.detail || "Erro ao confirmar agendamento.");
+                }
                 showNotification("Agendamento confirmado com sucesso!");
                 bootstrap.Modal.getInstance(document.getElementById("appointmentDetailsModal")).hide();
                 loadAppointmentsPage();
                 loadDashboard();
             } catch (err) {
-                showNotification("Erro ao confirmar agendamento.", true);
+                showNotification(err.message, true);
+            }
+        }
+
+        // Cancelar agendamento a partir do modal de detalhes do calendário
+        async function cancelAppointmentFromDetails() {
+            if (!currentSelectedAppointmentId) return;
+            if (!confirm("Deseja realmente cancelar este agendamento?")) return;
+            try {
+                const response = await fetch(`${API_URL}/appointments/${currentSelectedAppointmentId}/cancel`, { method: "POST" });
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.detail || "Erro ao cancelar o agendamento.");
+                }
+                showNotification("Agendamento cancelado com sucesso!");
+                bootstrap.Modal.getInstance(document.getElementById("appointmentDetailsModal")).hide();
+                loadAppointmentsPage();
+                loadDashboard();
+            } catch (err) {
+                showNotification(err.message, true);
             }
         }
 
@@ -1038,13 +1076,16 @@
             if (!confirm("Deseja realmente remover este agendamento?")) return;
             try {
                 const response = await fetch(`${API_URL}/appointments/${currentSelectedAppointmentId}`, { method: "DELETE" });
-                if (!response.ok) throw new Error();
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.detail || "Erro ao remover agendamento.");
+                }
                 showNotification("Agendamento removido com sucesso!");
                 bootstrap.Modal.getInstance(document.getElementById("appointmentDetailsModal")).hide();
                 loadAppointmentsPage();
                 loadDashboard();
             } catch (err) {
-                showNotification("Erro ao remover agendamento.", true);
+                showNotification(err.message, true);
             }
         }
 
@@ -1147,12 +1188,31 @@
         async function confirmAppointment(id) {
             try {
                 const response = await fetch(`${API_URL}/appointments/${id}/confirm`, { method: "POST" });
-                if (!response.ok) throw new Error();
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.detail || "Erro ao confirmar agendamento.");
+                }
                 showNotification("Agendamento confirmado!");
                 loadAppointmentsPage();
                 loadDashboard();
             } catch (err) {
-                showNotification("Não foi possível confirmar o agendamento.", true);
+                showNotification(err.message, true);
+            }
+        }
+
+        async function cancelAppointment(id) {
+            if (!confirm("Deseja realmente cancelar este agendamento?")) return;
+            try {
+                const response = await fetch(`${API_URL}/appointments/${id}/cancel`, { method: "POST" });
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.detail || "Erro ao cancelar o agendamento.");
+                }
+                showNotification("Agendamento cancelado com sucesso!");
+                loadAppointmentsPage();
+                loadDashboard();
+            } catch (err) {
+                showNotification(err.message, true);
             }
         }
 
@@ -1164,13 +1224,16 @@
                     body: JSON.stringify({ status: newStatus })
                 });
 
-                if (!response.ok) throw new Error();
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.detail || "Erro ao atualizar o status do serviço.");
+                }
                 
                 showNotification("Status do serviço atualizado!");
                 loadAppointmentsPage();
                 loadDashboard();
             } catch (err) {
-                showNotification("Erro ao atualizar o status do serviço.", true);
+                showNotification(err.message, true);
             }
         }
 
@@ -1178,12 +1241,15 @@
             if (!confirm("Deseja realmente excluir este agendamento?")) return;
             try {
                 const response = await fetch(`${API_URL}/appointments/${id}`, { method: "DELETE" });
-                if (!response.ok) throw new Error();
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.detail || "Erro ao excluir o agendamento do salão.");
+                }
                 showNotification("Agendamento removido.");
                 loadAppointmentsPage();
                 loadDashboard();
             } catch (err) {
-                showNotification("Erro ao excluir o agendamento do salão.", true);
+                showNotification(err.message, true);
             }
         }
     </script>

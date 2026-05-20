@@ -56,6 +56,11 @@ def delete_appointment(appointment_id: int, db: Session = Depends(get_db)):
 def confirm_appointment(appointment_id: int, db: Session = Depends(get_db)):
     return appointment_service.confirm_appointment(db=db, appointment_id=appointment_id)
 
+@router.post("/{appointment_id}/cancel", response_model=AppointmentResponse)
+def cancel_appointment(appointment_id: int, db: Session = Depends(get_db)):
+    return appointment_service.cancel_appointment(db=db, appointment_id=appointment_id)
+
+
 @router.patch("/{appointment_id}/services/{service_id}/status", response_model=AppointmentResponse)
 def update_service_status(
     appointment_id: int,
