@@ -57,8 +57,8 @@ def confirm_appointment(appointment_id: int, db: Session = Depends(get_db)):
     return appointment_service.confirm_appointment(db=db, appointment_id=appointment_id)
 
 @router.post("/{appointment_id}/cancel", response_model=AppointmentResponse)
-def cancel_appointment(appointment_id: int, db: Session = Depends(get_db)):
-    return appointment_service.cancel_appointment(db=db, appointment_id=appointment_id)
+def cancel_appointment(appointment_id: int, bypass_limit: bool = False, db: Session = Depends(get_db)):
+    return appointment_service.cancel_appointment(db=db, appointment_id=appointment_id, bypass_limit=bypass_limit)
 
 
 @router.patch("/{appointment_id}/services/{service_id}/status", response_model=AppointmentResponse)

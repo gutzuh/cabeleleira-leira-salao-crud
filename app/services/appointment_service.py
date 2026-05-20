@@ -221,7 +221,8 @@ def list_appointments(
         query = query.filter(Appointment.start_time >= start_date)
         
     if end_date is not None:
-        query = query.filter(Appointment.start_time <= end_date)
+        # Use exclusive end bound to match report_service (start_time < end_of_week)
+        query = query.filter(Appointment.start_time < end_date)
         
     appointments = query.order_by(Appointment.start_time.asc()).all()
     return [build_appointment_response(app) for app in appointments]
@@ -233,6 +234,15 @@ def confirm_appointment(db: Session, appointment_id: int) -> AppointmentResponse
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Agendamento com ID {appointment_id} não encontrado."
         )
+
+    if db_appointment.status != AppointmentStatus.SOLICITADO:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Só é possível confirmar agendamentos com status 'solicitado'. "
+                f"Status atual: '{db_appointment.status.value}'."
+            )
+        )
     
     db_appointment.status = AppointmentStatus.CONFIRMADO
     db.commit()
@@ -240,24 +250,37 @@ def confirm_appointment(db: Session, appointment_id: int) -> AppointmentResponse
     
     return build_appointment_response(db_appointment)
 
-def cancel_appointment(db: Session, appointment_id: int) -> AppointmentResponse:
+def cancel_appointment(db: Session, appointment_id: int, bypass_limit: bool = False) -> AppointmentResponse:
     db_appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
     if not db_appointment:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Agendamento com ID {appointment_id} não encontrado."
         )
-    
-    # regra de segurança: só deixa cancelar se faltar pelo menos 2 dias para o agendamento
-    time_difference = db_appointment.start_time - datetime.now()
-    if time_difference < timedelta(days=2):
+
+    if db_appointment.status == AppointmentStatus.CANCELADO:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "Não é possível cancelar este agendamento pois faltam menos de 2 dias para a data marcada. "
-                "Cancelamentos com prazo inferior a 2 dias devem ser solicitados exclusivamente por telefone."
-            )
+            detail="Este agendamento já está cancelado."
         )
+
+    if db_appointment.status == AppointmentStatus.CONCLUIDO:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Não é possível cancelar um agendamento concluído."
+        )
+    
+    if not bypass_limit:
+        # regra de segurança: só deixa cancelar se faltar pelo menos 2 dias para o agendamento
+        time_difference = db_appointment.start_time - datetime.now()
+        if time_difference < timedelta(days=2):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "Não é possível cancelar este agendamento pois faltam menos de 2 dias para a data marcada. "
+                    "Cancelamentos com prazo inferior a 2 dias devem ser solicitados exclusivamente por telefone."
+                )
+            )
     
     db_appointment.status = AppointmentStatus.CANCELADO
     

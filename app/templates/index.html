@@ -141,7 +141,7 @@
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-body p-0">
                 <nav class="nav nav-tabs nav-tabs-custom border-bottom" id="myTab" role="tablist">
-                    <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard-pane" type="button" role="tab" onclick="loadDashboard()"><i class="fa-solid fa-chart-line me-2"></i>Dashboard</button>
+                    <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard-pane" type="button" role="tab" onclick="refreshAppointmentsView(document.getElementById('reportDate').value)"><i class="fa-solid fa-chart-line me-2"></i>Dashboard</button>
                     <button class="nav-link" id="appointments-tab" data-bs-toggle="tab" data-bs-target="#appointments-pane" type="button" role="tab" onclick="triggerCalendarRender()"><i class="fa-solid fa-calendar-days me-2"></i>Agenda Interativa</button>
                     <button class="nav-link" id="clients-tab" data-bs-toggle="tab" data-bs-target="#clients-pane" type="button" role="tab" onclick="loadClients()"><i class="fa-solid fa-users me-2"></i>Clientes</button>
                     <button class="nav-link" id="services-tab" data-bs-toggle="tab" data-bs-target="#services-pane" type="button" role="tab" onclick="loadServices()"><i class="fa-solid fa-spa me-2"></i>Serviços</button>
@@ -160,7 +160,7 @@
                     </div>
                     <div class="col-md-6 col-sm-12 mt-3 mt-md-0 d-flex justify-content-md-end align-items-center">
                         <label for="reportDate" class="form-label me-2 mb-0 fw-semibold text-secondary">Semana de Referência:</label>
-                        <input type="date" id="reportDate" class="form-control w-auto" onchange="loadDashboard()">
+                        <input type="date" id="reportDate" class="form-control w-auto" onchange="refreshAppointmentsView(this.value)">
                     </div>
                 </div>
 
@@ -513,11 +513,11 @@
                     </div>
                 </div>
                 <div class="modal-footer border-top-0 bg-light d-flex justify-content-between">
-                    <button type="button" class="btn btn-outline-danger py-2 px-3" id="btnDeleteFromDet" onclick="deleteAppointmentFromDetails()"><i class="fa-solid fa-trash me-1"></i>Remover</button>
+                    <button type="button" class="btn btn-outline-danger py-2 px-3" id="btnDeleteFromDet"><i class="fa-solid fa-trash me-1"></i>Remover</button>
                     <div class="d-flex gap-2">
                         <button type="button" class="btn btn-secondary py-2 px-3" data-bs-dismiss="modal">Fechar</button>
-                        <button type="button" class="btn btn-outline-warning py-2 px-3" id="btnCancelFromDet" onclick="cancelAppointmentFromDetails()"><i class="fa-solid fa-ban me-1"></i>Cancelar</button>
-                        <button type="button" class="btn btn-success py-2 px-3" id="btnConfirmFromDet" onclick="confirmAppointmentFromDetails()"><i class="fa-solid fa-check me-1"></i>Confirmar</button>
+                        <button type="button" class="btn btn-outline-warning py-2 px-3" id="btnCancelFromDet"><i class="fa-solid fa-ban me-1"></i>Cancelar</button>
+                        <button type="button" class="btn btn-success py-2 px-3" id="btnConfirmFromDet"><i class="fa-solid fa-check me-1"></i>Confirmar</button>
                     </div>
                 </div>
             </div>
@@ -568,6 +568,9 @@
         let toastObj;
         let calendar;
         let currentSelectedAppointmentId = null;
+        let currentSelectedAppointmentStartTime = null;
+        let dashboardRequestSeq = 0;
+        let appointmentsRequestSeq = 0;
 
         window.addEventListener("DOMContentLoaded", () => {
             toastEl = document.getElementById("appToast");
@@ -580,8 +583,43 @@
             // Inicializa o FullCalendar
             initCalendar();
 
-            // Inicia carregando os dados do dashboard principal
-            loadDashboard();
+            // Inicia carregando os dados do dashboard principal E a tabela de agendamentos
+            refreshAppointmentsView(today);
+
+            // Event delegation for appointment actions (works for dynamic rows)
+            const appointmentsTbody = document.getElementById("appointmentsTableBody");
+            appointmentsTbody.addEventListener('click', (e) => {
+                const btn = e.target.closest('button');
+                console.log('appointmentsTbody click', {btn});
+                if (!btn) return;
+                if (btn.classList.contains('btn-confirm')) {
+                    const id = parseInt(btn.dataset.id);
+                    console.log('confirm clicked', id);
+                    confirmAppointment(id, btn.dataset.start || null);
+                } else if (btn.classList.contains('btn-cancel')) {
+                    const id = parseInt(btn.dataset.id);
+                    console.log('cancel clicked', id);
+                    cancelAppointment(id, false, btn.dataset.start || null);
+                } else if (btn.classList.contains('btn-delete')) {
+                    const id = parseInt(btn.dataset.id);
+                    console.log('delete clicked', id);
+                    deleteAppointment(id, btn.dataset.start || null);
+                }
+            });
+
+            appointmentsTbody.addEventListener('change', (e) => {
+                const sel = e.target;
+                if (!sel.classList.contains('svc-status-select')) return;
+                const apptId = parseInt(sel.dataset.appointmentId);
+                const svcId = parseInt(sel.dataset.serviceId);
+                const newStatus = sel.value;
+                changeServiceStatus(apptId, svcId, newStatus);
+            });
+
+            // Modal buttons: attach listeners
+            document.getElementById('btnConfirmFromDet').addEventListener('click', confirmAppointmentFromDetails);
+            document.getElementById('btnCancelFromDet').addEventListener('click', () => cancelAppointmentFromDetails(false));
+            document.getElementById('btnDeleteFromDet').addEventListener('click', deleteAppointmentFromDetails);
         });
 
         // Função utilitária para mostrar alertas (Sucesso / Erro)
@@ -655,18 +693,37 @@
             }, 100);
         }
 
+        async function refreshAppointmentsView(referenceDate = null) {
+            await Promise.all([
+                loadAppointmentsPage(referenceDate),
+                loadDashboard(referenceDate)
+            ]);
+        }
+
         // --- DASHBOARD E RELATÓRIOS ---
-        async function loadDashboard() {
-            const refDate = document.getElementById("reportDate").value;
+        async function loadDashboard(referenceDate = null) {
+            const requestSeq = ++dashboardRequestSeq;
+            const refDate = referenceDate || document.getElementById("reportDate").value;
             let url = `${API_URL}/reports/weekly`;
             if (refDate) {
-                url += `?reference_date=${refDate}T00:00:00`;
+                const normalizedDate = refDate.includes('T') ? refDate.split('T')[0] : refDate;
+                // Atualiza o campo de data no UI para refletir a semana carregada
+                try {
+                    document.getElementById("reportDate").value = normalizedDate;
+                } catch (e) {
+                    // ignore - elemento pode não existir em alguns contextos
+                }
+                url += `?reference_date=${normalizedDate}T00:00:00`;
             }
 
             try {
-                const response = await fetch(url);
+                const response = await fetch(url, { cache: "no-store" });
                 if (!response.ok) throw new Error("Erro ao consultar dados gerenciais");
                 const data = await response.json();
+
+                if (requestSeq !== dashboardRequestSeq) {
+                    return;
+                }
 
                 // Atualizar os números principais
                 document.getElementById("statRevenue").innerText = `R$ ${data.estimated_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -876,11 +933,37 @@
         }
 
         // --- AGENDAMENTOS ---
-        async function loadAppointmentsPage() {
+        async function loadAppointmentsPage(referenceDate = null) {
+            const requestSeq = ++appointmentsRequestSeq;
             try {
-                const response = await fetch(`${API_URL}/appointments`);
+                let url = `${API_URL}/appointments`;
+                
+                // Filtrar por semana se houver referenceDate
+                if (referenceDate) {
+                    const refDate = new Date(referenceDate.includes('T') ? referenceDate.split('T')[0] : referenceDate);
+                    const dayOfWeek = refDate.getDay(); // 0=dom, 1=seg, ..., 6=sab
+                    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                    
+                    const weekStart = new Date(refDate);
+                    weekStart.setDate(weekStart.getDate() - daysToMonday);
+                    weekStart.setHours(0, 0, 0, 0);
+                    
+                    const weekEnd = new Date(weekStart);
+                    weekEnd.setDate(weekEnd.getDate() + 7);
+                    
+                    const startDateStr = weekStart.toISOString().split('T')[0];
+                    const endDateStr = weekEnd.toISOString().split('T')[0];
+                    
+                    url += `?start_date=${startDateStr}T00:00:00&end_date=${endDateStr}T00:00:00`;
+                }
+                
+                const response = await fetch(url, { cache: "no-store" });
                 if (!response.ok) throw new Error();
                 const list = await response.json();
+
+                if (requestSeq !== appointmentsRequestSeq) {
+                    return;
+                }
 
                 // 1. Atualizar Tabela Detalhada
                 const tbody = document.getElementById("appointmentsTableBody");
@@ -898,7 +981,7 @@
                             servicesHtml += `
                                 <div class="d-flex align-items-center justify-content-between p-2 rounded border bg-light gap-2">
                                     <span class="small fw-semibold text-truncate" style="max-width: 140px;" title="${svc.name}">${svc.name}</span>
-                                    <select class="form-select form-select-sm w-auto py-0 px-1" onchange="changeServiceStatus(${app.id}, ${svc.service_id}, this.value)">
+                                    <select class="form-select form-select-sm w-auto py-0 px-1 svc-status-select" data-appointment-id="${app.id}" data-service-id="${svc.service_id}">
                                         <option value="pendente" ${svc.status === 'pendente' ? 'selected' : ''}>Pendente</option>
                                         <option value="em_andamento" ${svc.status === 'em_andamento' ? 'selected' : ''}>Em Andamento</option>
                                         <option value="concluido" ${svc.status === 'concluido' ? 'selected' : ''}>Concluído</option>
@@ -912,20 +995,20 @@
                         let actionButtons = "";
                         if (app.status === "solicitado") {
                             actionButtons += `
-                                <button class="btn btn-sm btn-success me-1 py-1" onclick="confirmAppointment(${app.id})">
+                                <button class="btn btn-sm btn-success me-1 py-1 btn-confirm" data-id="${app.id}" data-start="${app.start_time}">
                                     <i class="fa-solid fa-calendar-check me-1"></i>Confirmar
                                 </button>
                             `;
                         }
                         if (app.status === "solicitado" || app.status === "confirmado") {
                             actionButtons += `
-                                <button class="btn btn-sm btn-outline-warning me-1 py-1" onclick="cancelAppointment(${app.id})">
+                                <button class="btn btn-sm btn-outline-warning me-1 py-1 btn-cancel" data-id="${app.id}" data-start="${app.start_time}">
                                     <i class="fa-solid fa-ban me-1"></i>Cancelar
                                 </button>
                             `;
                         }
                         actionButtons += `
-                            <button class="btn btn-sm btn-outline-danger py-1" onclick="deleteAppointment(${app.id})">
+                            <button class="btn btn-sm btn-outline-danger py-1 btn-delete" data-id="${app.id}" data-start="${app.start_time}">
                                 <i class="fa-solid fa-trash"></i>
                             </button>
                         `;
@@ -971,8 +1054,10 @@
                     };
                 });
 
-                calendar.removeAllEvents();
-                calendar.addEventSource(events);
+                if (calendar) {
+                    calendar.removeAllEvents();
+                    calendar.addEventSource(events);
+                }
 
             } catch (err) {
                 showNotification("Não foi possível listar os agendamentos.", true);
@@ -982,6 +1067,7 @@
         // Exibe Detalhes do Agendamento ao Clicar no Evento do Calendário
         function showAppointmentDetails(event) {
             currentSelectedAppointmentId = parseInt(event.id);
+            currentSelectedAppointmentStartTime = event.startStr;
             const props = event.extendedProps;
             
             document.getElementById("detClientName").innerText = props.client_name;
@@ -1044,27 +1130,37 @@
                 }
                 showNotification("Agendamento confirmado com sucesso!");
                 bootstrap.Modal.getInstance(document.getElementById("appointmentDetailsModal")).hide();
-                loadAppointmentsPage();
-                loadDashboard();
+                currentSelectedAppointmentId = null;
+                await refreshAppointmentsView(currentSelectedAppointmentStartTime);
             } catch (err) {
                 showNotification(err.message, true);
             }
         }
 
         // Cancelar agendamento a partir do modal de detalhes do calendário
-        async function cancelAppointmentFromDetails() {
+        async function cancelAppointmentFromDetails(bypassLimit = false) {
             if (!currentSelectedAppointmentId) return;
-            if (!confirm("Deseja realmente cancelar este agendamento?")) return;
+            if (!bypassLimit && !confirm("Deseja realmente cancelar este agendamento?")) return;
             try {
-                const response = await fetch(`${API_URL}/appointments/${currentSelectedAppointmentId}/cancel`, { method: "POST" });
+                let url = `${API_URL}/appointments/${currentSelectedAppointmentId}/cancel`;
+                if (bypassLimit) {
+                    url += "?bypass_limit=true";
+                }
+                const response = await fetch(url, { method: "POST" });
                 if (!response.ok) {
                     const errData = await response.json();
+                    if (response.status === 400 && !bypassLimit) {
+                        if (confirm(`${errData.detail}\n\nDeseja ignorar esta restrição e cancelar o agendamento mesmo assim (como Administrador)?`)) {
+                            await cancelAppointmentFromDetails(true);
+                            return;
+                        }
+                    }
                     throw new Error(errData.detail || "Erro ao cancelar o agendamento.");
                 }
                 showNotification("Agendamento cancelado com sucesso!");
                 bootstrap.Modal.getInstance(document.getElementById("appointmentDetailsModal")).hide();
-                loadAppointmentsPage();
-                loadDashboard();
+                currentSelectedAppointmentId = null;
+                await refreshAppointmentsView(currentSelectedAppointmentStartTime);
             } catch (err) {
                 showNotification(err.message, true);
             }
@@ -1082,8 +1178,8 @@
                 }
                 showNotification("Agendamento removido com sucesso!");
                 bootstrap.Modal.getInstance(document.getElementById("appointmentDetailsModal")).hide();
-                loadAppointmentsPage();
-                loadDashboard();
+                currentSelectedAppointmentId = null;
+                await refreshAppointmentsView(currentSelectedAppointmentStartTime);
             } catch (err) {
                 showNotification(err.message, true);
             }
@@ -1171,8 +1267,7 @@
                 bootstrap.Modal.getInstance(document.getElementById("newAppointmentModal")).hide();
                 document.getElementById("newAppointmentForm").reset();
                 
-                loadAppointmentsPage();
-                loadDashboard();
+                await refreshAppointmentsView();
 
                 if (resData.suggestion) {
                     document.getElementById("suggestionModalText").innerText = resData.suggestion;
@@ -1185,7 +1280,8 @@
             }
         }
 
-        async function confirmAppointment(id) {
+        async function confirmAppointment(id, referenceDate = null) {
+            console.log('confirmAppointment called', id);
             try {
                 const response = await fetch(`${API_URL}/appointments/${id}/confirm`, { method: "POST" });
                 if (!response.ok) {
@@ -1193,24 +1289,32 @@
                     throw new Error(errData.detail || "Erro ao confirmar agendamento.");
                 }
                 showNotification("Agendamento confirmado!");
-                loadAppointmentsPage();
-                loadDashboard();
+                await refreshAppointmentsView(referenceDate);
             } catch (err) {
                 showNotification(err.message, true);
             }
         }
 
-        async function cancelAppointment(id) {
-            if (!confirm("Deseja realmente cancelar este agendamento?")) return;
+        async function cancelAppointment(id, bypassLimit = false, referenceDate = null) {
             try {
-                const response = await fetch(`${API_URL}/appointments/${id}/cancel`, { method: "POST" });
+                let url = `${API_URL}/appointments/${id}/cancel`;
+                if (bypassLimit) {
+                    url += "?bypass_limit=true";
+                }
+                const response = await fetch(url, { method: "POST" });
                 if (!response.ok) {
-                    const errData = await response.json();
-                    throw new Error(errData.detail || "Erro ao cancelar o agendamento.");
+                    let text = await response.text();
+                    let errMsg = text;
+                    try {
+                        const errData = JSON.parse(text);
+                        errMsg = errData.detail || JSON.stringify(errData);
+                    } catch (e) {
+                        // not JSON
+                    }
+                    throw new Error(errMsg || "Erro ao cancelar o agendamento.");
                 }
                 showNotification("Agendamento cancelado com sucesso!");
-                loadAppointmentsPage();
-                loadDashboard();
+                await refreshAppointmentsView(referenceDate);
             } catch (err) {
                 showNotification(err.message, true);
             }
@@ -1230,24 +1334,27 @@
                 }
                 
                 showNotification("Status do serviço atualizado!");
-                loadAppointmentsPage();
-                loadDashboard();
+                await refreshAppointmentsView();
             } catch (err) {
                 showNotification(err.message, true);
             }
         }
 
-        async function deleteAppointment(id) {
-            if (!confirm("Deseja realmente excluir este agendamento?")) return;
+        async function deleteAppointment(id, referenceDate = null) {
             try {
                 const response = await fetch(`${API_URL}/appointments/${id}`, { method: "DELETE" });
                 if (!response.ok) {
-                    const errData = await response.json();
-                    throw new Error(errData.detail || "Erro ao excluir o agendamento do salão.");
+                    let text = await response.text();
+                    let errMsg = text;
+                    try {
+                        const errData = JSON.parse(text);
+                        errMsg = errData.detail || JSON.stringify(errData);
+                    } catch (e) {}
+                    throw new Error(errMsg || "Erro ao excluir o agendamento do salão.");
                 }
                 showNotification("Agendamento removido.");
-                loadAppointmentsPage();
-                loadDashboard();
+                currentSelectedAppointmentId = null;
+                await refreshAppointmentsView(referenceDate);
             } catch (err) {
                 showNotification(err.message, true);
             }
