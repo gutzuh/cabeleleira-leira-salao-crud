@@ -6,8 +6,10 @@
     <title>Cabeleleia Leila — Painel do Salão</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- FontAwesome para ícones premium -->
+    <!-- FontAwesome para ícones -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <!-- FullCalendar 6 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
     <style>
         :root {
             --primary-color: #d63384;
@@ -86,13 +88,43 @@
         .badge-em_andamento { background-color: #e8f4fd; color: #0b5ed7; }
         
         .toast-container {
-            z-index: 1100;
+            z-index: 1200;
+        }
+        /* Customizações do FullCalendar para combinar com a identidade visual do salão */
+        #calendar {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.01);
+            min-height: 550px;
+        }
+        .fc-header-toolbar {
+            margin-bottom: 20px !important;
+        }
+        .fc-button-primary {
+            background-color: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+            font-weight: 600 !important;
+        }
+        .fc-button-primary:hover {
+            background-color: var(--primary-hover) !important;
+            border-color: var(--primary-hover) !important;
+        }
+        .fc-button-active {
+            background-color: var(--primary-hover) !important;
+            border-color: var(--primary-hover) !important;
+        }
+        .fc-event {
+            cursor: pointer;
+            border-radius: 6px;
+            padding: 2px 4px;
+            font-size: 0.85rem;
         }
     </style>
 </head>
 <body>
 
-    <!-- Cabeçalho Principal -->
     <nav class="navbar navbar-dark navbar-custom py-3">
         <div class="container">
             <span class="navbar-brand brand-logo d-flex align-items-center">
@@ -106,19 +138,17 @@
     </nav>
 
     <div class="container my-4">
-        <!-- Abas de Navegação -->
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-body p-0">
                 <nav class="nav nav-tabs nav-tabs-custom border-bottom" id="myTab" role="tablist">
-                    <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard-pane" type="button" role="tab"><i class="fa-solid fa-chart-line me-2"></i>Dashboard</button>
-                    <button class="nav-link" id="appointments-tab" data-bs-toggle="tab" data-bs-target="#appointments-pane" type="button" role="tab" onclick="loadAppointmentsPage()"><i class="fa-solid fa-calendar-days me-2"></i>Agendamentos</button>
+                    <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard-pane" type="button" role="tab" onclick="loadDashboard()"><i class="fa-solid fa-chart-line me-2"></i>Dashboard</button>
+                    <button class="nav-link" id="appointments-tab" data-bs-toggle="tab" data-bs-target="#appointments-pane" type="button" role="tab" onclick="triggerCalendarRender()"><i class="fa-solid fa-calendar-days me-2"></i>Agenda Interativa</button>
                     <button class="nav-link" id="clients-tab" data-bs-toggle="tab" data-bs-target="#clients-pane" type="button" role="tab" onclick="loadClients()"><i class="fa-solid fa-users me-2"></i>Clientes</button>
                     <button class="nav-link" id="services-tab" data-bs-toggle="tab" data-bs-target="#services-pane" type="button" role="tab" onclick="loadServices()"><i class="fa-solid fa-spa me-2"></i>Serviços</button>
                 </nav>
             </div>
         </div>
 
-        <!-- Conteúdo das Abas -->
         <div class="tab-content" id="myTabContent">
             
             <!-- Painel 1: Dashboard -->
@@ -134,7 +164,6 @@
                     </div>
                 </div>
 
-                <!-- Cards com Estatísticas -->
                 <div class="row g-4 mb-4">
                     <div class="col-md-3 col-sm-6">
                         <div class="card card-stat p-3 border-0 shadow-sm">
@@ -183,7 +212,6 @@
                 </div>
 
                 <div class="row g-4">
-                    <!-- Tabela de Serviços Populares -->
                     <div class="col-md-6">
                         <div class="card border-0 shadow-sm p-4 h-100">
                             <h5 class="fw-bold mb-3"><i class="fa-solid fa-fire me-2 text-danger"></i>Serviços Mais Pedidos</h5>
@@ -203,12 +231,11 @@
                         </div>
                     </div>
 
-                    <!-- Divisão por Status -->
                     <div class="col-md-6">
                         <div class="card border-0 shadow-sm p-4 h-100">
                             <h5 class="fw-bold mb-3"><i class="fa-solid fa-list-check me-2 text-primary"></i>Divisão de Agendamentos</h5>
                             <div id="statusListContainer" class="d-flex flex-column gap-3 py-2">
-                                <!-- Preenchido via JS com barras de progresso -->
+                                <!-- Preenchido via JS -->
                             </div>
                         </div>
                     </div>
@@ -220,16 +247,23 @@
                 <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
                     <div>
                         <h4 class="fw-bold mb-1 text-secondary">Agenda do Salão</h4>
-                        <p class="text-muted mb-0">Marque novos horários e acompanhe o andamento das tarefas de cada cliente.</p>
+                        <p class="text-muted mb-0">Escolha um horário clicando na tabela ou use o botão para agendar.</p>
                     </div>
                     <button class="btn btn-pink py-2 px-3" data-bs-toggle="modal" data-bs-target="#newAppointmentModal" onclick="prepareNewAppointmentModal()">
                         <i class="fa-solid fa-plus me-2"></i>Novo Agendamento
                     </button>
                 </div>
 
-                <!-- Lista de Agendamentos -->
+                <!-- Calendário Visual Interativo -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div id="calendar"></div>
+                    </div>
+                </div>
+
+                <!-- Tabela de Controle Operacional abaixo -->
                 <div class="card border-0 shadow-sm p-4">
-                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-clock-rotate-left me-2 text-secondary"></i>Lista Geral</h5>
+                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-list-ul me-2 text-secondary"></i>Controle Detalhado</h5>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
@@ -326,7 +360,7 @@
                 <form id="newClientForm" onsubmit="saveClient(event)">
                     <div class="modal-header border-bottom-0 bg-light">
                         <h5 class="modal-title fw-bold text-secondary"><i class="fa-solid fa-user-plus me-2 text-pink"></i>Cadastrar Novo Cliente</h5>
-                        <button type="button" class="btn-close" data-bs-shadow="none" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body py-3">
                         <div class="mb-3">
@@ -416,11 +450,19 @@
                         <div class="mb-3">
                             <label for="appointmentStartTime" class="form-label fw-semibold">Data e Hora de Início</label>
                             <input type="datetime-local" class="form-control" id="appointmentStartTime" required>
+                            
+                            <!-- Botões de Atalho Rápido para Facilitar Agendamentos Manuais -->
+                            <div class="d-flex flex-wrap gap-2 mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setTimePreset(0, 10)">Hoje às 10:00</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setTimePreset(0, 14)">Hoje às 14:00</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setTimePreset(1, 10)">Amanhã às 10:00</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setTimePreset(1, 14)">Amanhã às 14:00</button>
+                            </div>
                         </div>
 
                         <div class="mb-3">
                             <label for="appointmentNotes" class="form-label fw-semibold">Observações Gerais (Opcional)</label>
-                            <textarea class="form-control" id="appointmentNotes" rows="2" placeholder="Ex: Prefere corte seco. Quer café com leite."></textarea>
+                            <textarea class="form-control" id="appointmentNotes" rows="2" placeholder="Ex: Prefere corte seco."></textarea>
                         </div>
                     </div>
                     <div class="modal-footer border-top-0 bg-light">
@@ -428,6 +470,55 @@
                         <button type="submit" class="btn btn-pink py-2 px-4">Concluir Reserva</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Detalhes do Agendamento pelo Calendário -->
+    <div class="modal fade" id="appointmentDetailsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-bottom-0 bg-light">
+                    <h5 class="modal-title fw-bold text-secondary"><i class="fa-solid fa-calendar-check me-2 text-pink"></i>Detalhes do Agendamento</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <div class="mb-3">
+                        <span class="text-muted small fw-semibold">CLIENTE</span>
+                        <h5 class="fw-bold text-pink mb-0" id="detClientName">-</h5>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <span class="text-muted small fw-semibold">INÍCIO</span>
+                            <div class="fw-bold" id="detStartTime">-</div>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted small fw-semibold">FIM ESTIMADO</span>
+                            <div class="fw-bold" id="detEndTime">-</div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <span class="text-muted small fw-semibold">STATUS GERAL</span>
+                        <div><span class="status-badge badge" id="detStatusBadge">-</span></div>
+                    </div>
+                    <div class="mb-3">
+                        <span class="text-muted small fw-semibold">SERVIÇOS CONTRATADOS</span>
+                        <ul class="list-group list-group-flush border rounded p-2 bg-light" id="detServicesList">
+                            <!-- Serviços listados aqui -->
+                        </ul>
+                    </div>
+                    <div class="mb-0" id="detNotesSection">
+                        <span class="text-muted small fw-semibold">OBSERVAÇÕES</span>
+                        <p class="text-muted mb-0 small" id="detNotes">-</p>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 bg-light d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-danger py-2 px-3" id="btnDeleteFromDet" onclick="deleteAppointmentFromDetails()"><i class="fa-solid fa-trash me-1"></i>Remover</button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-secondary py-2 px-3" data-bs-dismiss="modal">Fechar</button>
+                        <button type="button" class="btn btn-success py-2 px-3" id="btnConfirmFromDet" onclick="confirmAppointmentFromDetails()"><i class="fa-solid fa-check me-1"></i>Confirmar</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -452,26 +543,30 @@
         </div>
     </div>
 
-    <!-- Toast container para mensagens de sucesso e erros -->
+    <!-- Toast container para mensagens -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3">
         <div id="appToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
                 <div class="toast-body" id="toastMessage">
                     Mensagem informativa!
                 </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-close="toast" aria-label="Close"></button>
             </div>
         </div>
     </div>
 
     <!-- Bootstrap 5 Bundle com Popper.js -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- FullCalendar 6 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
     <!-- Script de Integração com o Backend -->
     <script>
         const API_URL = "http://127.0.0.1:8000";
         let toastEl;
         let toastObj;
+        let calendar;
+        let currentSelectedAppointmentId = null;
 
         window.addEventListener("DOMContentLoaded", () => {
             toastEl = document.getElementById("appToast");
@@ -480,6 +575,9 @@
             // Coloca a data de hoje como padrão no filtro do relatório
             const today = new Date().toISOString().split("T")[0];
             document.getElementById("reportDate").value = today;
+
+            // Inicializa o FullCalendar
+            initCalendar();
 
             // Inicia carregando os dados do dashboard principal
             loadDashboard();
@@ -491,6 +589,69 @@
             toastBody.innerText = message;
             toastEl.className = `toast align-items-center text-white border-0 ${isError ? 'bg-danger' : 'bg-success'}`;
             toastObj.show();
+        }
+
+        // Configuração dos presets de data no Modal
+        function setTimePreset(daysOffset, hour) {
+            const target = new Date();
+            target.setDate(target.getDate() + daysOffset);
+            target.setHours(hour, 0, 0, 0);
+            
+            const y = target.getFullYear();
+            const m = String(target.getMonth() + 1).padStart(2, '0');
+            const d = String(target.getDate()).padStart(2, '0');
+            const h = String(target.getHours()).padStart(2, '0');
+            const min = String(target.getMinutes()).padStart(2, '0');
+            
+            document.getElementById("appointmentStartTime").value = `${y}-${m}-${d}T${h}:${min}`;
+        }
+
+        // Inicializa o FullCalendar com visual de grade de tempo semanal (timeGridWeek)
+        function initCalendar() {
+            const calendarEl = document.getElementById('calendar');
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'timeGridWeek',
+                locale: 'pt-br',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'timeGridWeek,timeGridDay,dayGridMonth'
+                },
+                buttonText: {
+                    today: 'Hoje',
+                    month: 'Mês',
+                    week: 'Semana',
+                    day: 'Dia'
+                },
+                allDaySlot: false,
+                slotMinTime: '07:00:00', // salão abre às 07:00
+                slotMaxTime: '21:00:00', // salão fecha às 21:00
+                expandRows: true,
+                selectable: true,
+                selectHelper: true,
+                // Ao clicar/selecionar um horário vazio no calendário
+                select: function(info) {
+                    let dateStr = info.startStr.slice(0, 16);
+                    document.getElementById("appointmentStartTime").value = dateStr;
+                    prepareNewAppointmentModal();
+                    
+                    const modal = new bootstrap.Modal(document.getElementById("newAppointmentModal"));
+                    modal.show();
+                },
+                // Ao clicar em um agendamento já marcado no calendário
+                eventClick: function(info) {
+                    showAppointmentDetails(info.event);
+                }
+            });
+            calendar.render();
+        }
+
+        // Força a renderização do calendário quando a aba for selecionada
+        function triggerCalendarRender() {
+            setTimeout(() => {
+                calendar.render();
+                loadAppointmentsPage();
+            }, 100);
         }
 
         // --- DASHBOARD E RELATÓRIOS ---
@@ -533,7 +694,7 @@
                 const statusContainer = document.getElementById("statusListContainer");
                 statusContainer.innerHTML = "";
                 
-                const total = data.total_appointments || 1; // previne divisão por zero no progresso
+                const total = data.total_appointments || 1;
                 const statusMap = data.appointments_by_status;
                 const statusColors = {
                     solicitado: 'primary',
@@ -720,75 +881,176 @@
                 if (!response.ok) throw new Error();
                 const list = await response.json();
 
+                // 1. Atualizar Tabela Detalhada
                 const tbody = document.getElementById("appointmentsTableBody");
                 tbody.innerHTML = "";
 
                 if (list.length === 0) {
                     tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">Nenhum agendamento marcado.</td></tr>`;
-                    return;
-                }
+                } else {
+                    list.forEach(app => {
+                        const startTimeStr = new Date(app.start_time).toLocaleString('pt-BR');
+                        const endTimeStr = new Date(app.end_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                        
+                        let servicesHtml = '<div class="d-flex flex-column gap-2">';
+                        app.services.forEach(svc => {
+                            servicesHtml += `
+                                <div class="d-flex align-items-center justify-content-between p-2 rounded border bg-light gap-2">
+                                    <span class="small fw-semibold text-truncate" style="max-width: 140px;" title="${svc.name}">${svc.name}</span>
+                                    <select class="form-select form-select-sm w-auto py-0 px-1" onchange="changeServiceStatus(${app.id}, ${svc.service_id}, this.value)">
+                                        <option value="pendente" ${svc.status === 'pendente' ? 'selected' : ''}>Pendente</option>
+                                        <option value="em_andamento" ${svc.status === 'em_andamento' ? 'selected' : ''}>Em Andamento</option>
+                                        <option value="concluido" ${svc.status === 'concluido' ? 'selected' : ''}>Concluído</option>
+                                        <option value="cancelado" ${svc.status === 'cancelado' ? 'selected' : ''}>Cancelado</option>
+                                    </select>
+                                </div>
+                            `;
+                        });
+                        servicesHtml += '</div>';
 
-                list.forEach(app => {
-                    const startTimeStr = new Date(app.start_time).toLocaleString('pt-BR');
-                    const endTimeStr = new Date(app.end_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                    
-                    // Constrói os serviços com seletores de status individual
-                    let servicesHtml = '<div class="d-flex flex-column gap-2">';
-                    app.services.forEach(svc => {
-                        servicesHtml += `
-                            <div class="d-flex align-items-center justify-content-between p-2 rounded border bg-light gap-2">
-                                <span class="small fw-semibold text-truncate" style="max-width: 140px;" title="${svc.name}">${svc.name}</span>
-                                <select class="form-select form-select-sm w-auto py-0 px-1" onchange="changeServiceStatus(${app.id}, ${svc.service_id}, this.value)">
-                                    <option value="pendente" ${svc.status === 'pendente' ? 'selected' : ''}>Pendente</option>
-                                    <option value="em_andamento" ${svc.status === 'em_andamento' ? 'selected' : ''}>Em Andamento</option>
-                                    <option value="concluido" ${svc.status === 'concluido' ? 'selected' : ''}>Concluído</option>
-                                    <option value="cancelado" ${svc.status === 'cancelado' ? 'selected' : ''}>Cancelado</option>
-                                </select>
-                            </div>
-                        `;
-                    });
-                    servicesHtml += '</div>';
-
-                    // Botões de Ações baseados no status geral
-                    let actionButtons = "";
-                    if (app.status === "solicitado") {
+                        let actionButtons = "";
+                        if (app.status === "solicitado") {
+                            actionButtons += `
+                                <button class="btn btn-sm btn-success me-1 py-1" onclick="confirmAppointment(${app.id})">
+                                    <i class="fa-solid fa-calendar-check me-1"></i>Confirmar
+                                </button>
+                            `;
+                        }
                         actionButtons += `
-                            <button class="btn btn-sm btn-success me-1 py-1" onclick="confirmAppointment(${app.id})" title="Confirmar Agendamento">
-                                <i class="fa-solid fa-calendar-check me-1"></i>Confirmar
+                            <button class="btn btn-sm btn-outline-danger py-1" onclick="deleteAppointment(${app.id})">
+                                <i class="fa-solid fa-trash"></i>
                             </button>
                         `;
-                    }
-                    actionButtons += `
-                        <button class="btn btn-sm btn-outline-danger py-1" onclick="deleteAppointment(${app.id})" title="Remover Agendamento">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
-                    `;
 
-                    tbody.innerHTML += `
-                        <tr>
-                            <td><strong>#${app.id}</strong></td>
-                            <td>
-                                <strong class="text-pink">${app.client_name}</strong>
-                                ${app.notes ? `<br><small class="text-muted text-truncate d-inline-block" style="max-width: 160px;" title="${app.notes}">Nota: ${app.notes}</small>` : ''}
-                            </td>
-                            <td><span class="badge bg-white text-dark border px-2 py-1">${startTimeStr}</span></td>
-                            <td><span class="badge bg-white text-dark border px-2 py-1">${endTimeStr}</span></td>
-                            <td><span class="status-badge badge badge-${app.status}">${app.status.toUpperCase()}</span></td>
-                            <td>${servicesHtml}</td>
-                            <td class="text-end text-nowrap">${actionButtons}</td>
-                        </tr>
-                    `;
+                        tbody.innerHTML += `
+                            <tr>
+                                <td><strong>#${app.id}</strong></td>
+                                <td>
+                                    <strong class="text-pink">${app.client_name}</strong>
+                                    ${app.notes ? `<br><small class="text-muted text-truncate d-inline-block" style="max-width: 160px;" title="${app.notes}">Nota: ${app.notes}</small>` : ''}
+                                </td>
+                                <td><span class="badge bg-white text-dark border px-2 py-1">${startTimeStr}</span></td>
+                                <td><span class="badge bg-white text-dark border px-2 py-1">${endTimeStr}</span></td>
+                                <td><span class="status-badge badge badge-${app.status}">${app.status.toUpperCase()}</span></td>
+                                <td>${servicesHtml}</td>
+                                <td class="text-end text-nowrap">${actionButtons}</td>
+                            </tr>
+                        `;
+                    });
+                }
+
+                // 2. Mapear e plotar no FullCalendar
+                const events = list.map(app => {
+                    let color = '#0d6efd'; // solicitado -> Azul
+                    if (app.status === 'confirmado') color = '#198754'; // confirmado -> Verde
+                    if (app.status === 'cancelado') color = '#dc3545'; // cancelado -> Vermelho
+                    if (app.status === 'concluido') color = '#6f42c1'; // concluido -> Roxo
+
+                    const serviceNames = app.services.map(s => s.name).join(', ');
+                    return {
+                        id: app.id.toString(),
+                        title: `${app.client_name} (${serviceNames})`,
+                        start: app.start_time,
+                        end: app.end_time,
+                        backgroundColor: color,
+                        borderColor: color,
+                        extendedProps: {
+                            client_name: app.client_name,
+                            notes: app.notes,
+                            status: app.status,
+                            services: app.services
+                        }
+                    };
                 });
+
+                calendar.removeAllEvents();
+                calendar.addEventSource(events);
 
             } catch (err) {
                 showNotification("Não foi possível listar os agendamentos.", true);
             }
         }
 
-        // Carrega as opções de clientes e serviços no formulário de Novo Agendamento
+        // Exibe Detalhes do Agendamento ao Clicar no Evento do Calendário
+        function showAppointmentDetails(event) {
+            currentSelectedAppointmentId = parseInt(event.id);
+            const props = event.extendedProps;
+            
+            document.getElementById("detClientName").innerText = props.client_name;
+            document.getElementById("detStartTime").innerText = new Date(event.start).toLocaleString('pt-BR');
+            document.getElementById("detEndTime").innerText = new Date(event.end).toLocaleString('pt-BR');
+            
+            const badge = document.getElementById("detStatusBadge");
+            badge.innerText = props.status.toUpperCase();
+            badge.className = `status-badge badge badge-${props.status}`;
+
+            // Exibir Serviços
+            const list = document.getElementById("detServicesList");
+            list.innerHTML = "";
+            props.services.forEach(s => {
+                list.innerHTML += `
+                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent py-2">
+                        <span><strong>${s.name}</strong></span>
+                        <span class="badge rounded bg-secondary-subtle text-secondary px-2 py-1">${s.status.toUpperCase()}</span>
+                    </li>
+                `;
+            });
+
+            // Observações
+            const notesText = document.getElementById("detNotes");
+            if (props.notes) {
+                document.getElementById("detNotesSection").style.display = "block";
+                notesText.innerText = props.notes;
+            } else {
+                document.getElementById("detNotesSection").style.display = "none";
+            }
+
+            // Exibir/Ocultar Botão de Confirmar de acordo com o status
+            const btnConfirm = document.getElementById("btnConfirmFromDet");
+            if (props.status === "solicitado") {
+                btnConfirm.style.display = "inline-block";
+            } else {
+                btnConfirm.style.display = "none";
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById("appointmentDetailsModal"));
+            modal.show();
+        }
+
+        // Confirmar agendamento a partir do modal de detalhes do calendário
+        async function confirmAppointmentFromDetails() {
+            if (!currentSelectedAppointmentId) return;
+            try {
+                const response = await fetch(`${API_URL}/appointments/${currentSelectedAppointmentId}/confirm`, { method: "POST" });
+                if (!response.ok) throw new Error();
+                showNotification("Agendamento confirmado com sucesso!");
+                bootstrap.Modal.getInstance(document.getElementById("appointmentDetailsModal")).hide();
+                loadAppointmentsPage();
+                loadDashboard();
+            } catch (err) {
+                showNotification("Erro ao confirmar agendamento.", true);
+            }
+        }
+
+        // Remover agendamento a partir do modal de detalhes do calendário
+        async function deleteAppointmentFromDetails() {
+            if (!currentSelectedAppointmentId) return;
+            if (!confirm("Deseja realmente remover este agendamento?")) return;
+            try {
+                const response = await fetch(`${API_URL}/appointments/${currentSelectedAppointmentId}`, { method: "DELETE" });
+                if (!response.ok) throw new Error();
+                showNotification("Agendamento removido com sucesso!");
+                bootstrap.Modal.getInstance(document.getElementById("appointmentDetailsModal")).hide();
+                loadAppointmentsPage();
+                loadDashboard();
+            } catch (err) {
+                showNotification("Erro ao remover agendamento.", true);
+            }
+        }
+
+        // Carrega opções de clientes e serviços para o Modal de Novo Agendamento
         async function prepareNewAppointmentModal() {
             try {
-                // 1. Carregar Clientes
                 const resClients = await fetch(`${API_URL}/clients`);
                 const clients = await resClients.json();
                 const clientSelect = document.getElementById("appointmentClient");
@@ -798,7 +1060,6 @@
                     clientSelect.innerHTML += `<option value="${c.id}">${c.name} (${c.phone})</option>`;
                 });
 
-                // 2. Carregar Serviços do salão
                 const resServices = await fetch(`${API_URL}/services`);
                 const services = await resServices.json();
                 const servicesListDiv = document.getElementById("appointmentServicesList");
@@ -822,7 +1083,7 @@
                 });
 
             } catch (err) {
-                showNotification("Erro ao carregar dados complementares para o agendamento.", true);
+                showNotification("Erro ao carregar dados complementares.", true);
             }
         }
 
@@ -869,11 +1130,9 @@
                 bootstrap.Modal.getInstance(document.getElementById("newAppointmentModal")).hide();
                 document.getElementById("newAppointmentForm").reset();
                 
-                // Recarregar tabelas e dados
                 loadAppointmentsPage();
                 loadDashboard();
 
-                // Se houver uma sugestão semanal, exibe o Modal informativo correspondente!
                 if (resData.suggestion) {
                     document.getElementById("suggestionModalText").innerText = resData.suggestion;
                     const sugModal = new bootstrap.Modal(document.getElementById("suggestionModal"));
@@ -885,7 +1144,6 @@
             }
         }
 
-        // Confirmar Agendamento Geral
         async function confirmAppointment(id) {
             try {
                 const response = await fetch(`${API_URL}/appointments/${id}/confirm`, { method: "POST" });
@@ -898,7 +1156,6 @@
             }
         }
 
-        // Alterar status de serviço individual dentro do agendamento
         async function changeServiceStatus(appointmentId, serviceId, newStatus) {
             try {
                 const response = await fetch(`${API_URL}/appointments/${appointmentId}/services/${serviceId}/status`, {
@@ -917,7 +1174,6 @@
             }
         }
 
-        // Remover/Deletar agendamento
         async function deleteAppointment(id) {
             if (!confirm("Deseja realmente excluir este agendamento?")) return;
             try {

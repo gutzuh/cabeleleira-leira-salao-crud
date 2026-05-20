@@ -38,10 +38,10 @@ Cabeleleia Leila/
 
 * **Python 3**: Linguagem base do projeto.
 * **FastAPI**: Framework de alto desempenho utilizado para a construção e disponibilização das rotas RESTful.
-* **SQLAlchemy 2.0**: ORM utilizado para abstração de banco de dados, utilizando mapeamento declarativo moderno e tipado 
+* **SQLAlchemy 2.0**: ORM utilizado para abstração de banco de dados, utilizando mapeamento declarativo moderno e tipado
 * **SQLite**: Banco de dados relacional leve e embutido para persistência local dos registros.
 * **Pydantic v2**: Camada robusta de validação e parsing de schemas e dados de entrada/saída.
-* **Bootstrap 5 & JavaScript**: Stack utilizada para o desenvolvimento da Single Page Application (SPA) que serve como painel administrativo do salão.
+* **Bootstrap 5 & JavaScript (Puro) & FullCalendar 6**: Stack utilizada para o desenvolvimento da Single Page Application (SPA) que serve como painel administrativo do salão.
 
 ---
 
