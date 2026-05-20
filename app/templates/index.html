@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cabeleleia Leila — Painel do Salão</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome para ícones premium -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #d63384;
+            --primary-hover: #b9226c;
+            --bg-color: #faf6f8;
+            --card-border: rgba(214, 51, 132, 0.1);
+        }
+        body {
+            background-color: var(--bg-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar-custom {
+            background: linear-gradient(135deg, #d63384, #8b1e52);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .brand-logo {
+            font-weight: 700;
+            letter-spacing: 1px;
+            font-size: 1.4rem;
+        }
+        .nav-tabs-custom .nav-link {
+            color: #6c757d;
+            font-weight: 600;
+            border: none;
+            border-bottom: 3px solid transparent;
+            padding: 12px 20px;
+            transition: all 0.3s ease;
+        }
+        .nav-tabs-custom .nav-link.active {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
+            background: transparent;
+        }
+        .nav-tabs-custom .nav-link:hover {
+            color: var(--primary-hover);
+            border-bottom: 3px solid rgba(214, 51, 132, 0.3);
+        }
+        .card-stat {
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            background-color: #fff;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 4px 6px rgba(214, 51, 132, 0.02);
+        }
+        .card-stat:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(214, 51, 132, 0.08);
+        }
+        .btn-pink {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            font-weight: 600;
+            transition: background-color 0.2s ease;
+        }
+        .btn-pink:hover {
+            background-color: var(--primary-hover);
+            color: white;
+        }
+        .status-badge {
+            font-size: 0.85rem;
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+        .table-responsive {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #dee2e6;
+        }
+        .badge-solicitado { background-color: #cfe2ff; color: #084298; }
+        .badge-confirmado { background-color: #d1e7dd; color: #0f5132; }
+        .badge-cancelado { background-color: #f8d7da; color: #842029; }
+        .badge-concluido { background-color: #e2d9f3; color: #563d7c; }
+
+        .badge-pendente { background-color: #fef5e7; color: #b05d06; }
+        .badge-em_andamento { background-color: #e8f4fd; color: #0b5ed7; }
+        
+        .toast-container {
+            z-index: 1100;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Cabeçalho Principal -->
+    <nav class="navbar navbar-dark navbar-custom py-3">
+        <div class="container">
+            <span class="navbar-brand brand-logo d-flex align-items-center">
+                <i class="fa-solid fa-scissors me-2"></i>
+                Cabeleleia Leila
+            </span>
+            <span class="navbar-text text-white-50 d-none d-sm-inline">
+                Painel Administrativo do Salão
+            </span>
+        </div>
+    </nav>
+
+    <div class="container my-4">
+        <!-- Abas de Navegação -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body p-0">
+                <nav class="nav nav-tabs nav-tabs-custom border-bottom" id="myTab" role="tablist">
+                    <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard-pane" type="button" role="tab"><i class="fa-solid fa-chart-line me-2"></i>Dashboard</button>
+                    <button class="nav-link" id="appointments-tab" data-bs-toggle="tab" data-bs-target="#appointments-pane" type="button" role="tab" onclick="loadAppointmentsPage()"><i class="fa-solid fa-calendar-days me-2"></i>Agendamentos</button>
+                    <button class="nav-link" id="clients-tab" data-bs-toggle="tab" data-bs-target="#clients-pane" type="button" role="tab" onclick="loadClients()"><i class="fa-solid fa-users me-2"></i>Clientes</button>
+                    <button class="nav-link" id="services-tab" data-bs-toggle="tab" data-bs-target="#services-pane" type="button" role="tab" onclick="loadServices()"><i class="fa-solid fa-spa me-2"></i>Serviços</button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Conteúdo das Abas -->
+        <div class="tab-content" id="myTabContent">
+            
+            <!-- Painel 1: Dashboard -->
+            <div class="tab-pane fade show active" id="dashboard-pane" role="tabpanel">
+                <div class="row mb-4 align-items-center">
+                    <div class="col-md-6 col-sm-12">
+                        <h4 class="fw-bold mb-1 text-secondary">Resumo Operacional</h4>
+                        <p class="text-muted mb-0">Confira o faturamento e serviços concluídos da semana.</p>
+                    </div>
+                    <div class="col-md-6 col-sm-12 mt-3 mt-md-0 d-flex justify-content-md-end align-items-center">
+                        <label for="reportDate" class="form-label me-2 mb-0 fw-semibold text-secondary">Semana de Referência:</label>
+                        <input type="date" id="reportDate" class="form-control w-auto" onchange="loadDashboard()">
+                    </div>
+                </div>
+
+                <!-- Cards com Estatísticas -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-3 col-sm-6">
+                        <div class="card card-stat p-3 border-0 shadow-sm">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="text-muted fw-semibold">Faturamento Estimado</span>
+                                <div class="bg-success-subtle text-success p-2 rounded-circle"><i class="fa-solid fa-hand-holding-dollar fs-5"></i></div>
+                            </div>
+                            <h3 class="fw-bold mb-0 text-success" id="statRevenue">R$ 0,00</h3>
+                            <small class="text-muted">Serviços concluídos</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="card card-stat p-3 border-0 shadow-sm">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="text-muted fw-semibold">Serviços Concluídos</span>
+                                <div class="bg-purple-subtle text-purple p-2 rounded-circle" style="color: #6f42c1; background-color: #efebf8;"><i class="fa-solid fa-circle-check fs-5"></i></div>
+                            </div>
+                            <h3 class="fw-bold mb-0" style="color: #6f42c1;" id="statCompleted">0</h3>
+                            <small class="text-muted">Tarefas finalizadas</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="card card-stat p-3 border-0 shadow-sm">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="text-muted fw-semibold">Agendamentos Totais</span>
+                                <div class="bg-info-subtle text-info p-2 rounded-circle"><i class="fa-solid fa-calendar-check fs-5"></i></div>
+                            </div>
+                            <h3 class="fw-bold mb-0 text-info" id="statAppointments">0</h3>
+                            <small class="text-muted">Registrados na semana</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="card card-stat p-3 border-0 shadow-sm">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="text-muted fw-semibold">Cancelados / Confirmados</span>
+                                <div class="bg-danger-subtle text-danger p-2 rounded-circle"><i class="fa-solid fa-circle-xmark fs-5"></i></div>
+                            </div>
+                            <h3 class="fw-bold mb-0 text-danger d-flex align-items-center">
+                                <span id="statCancelled">0</span>
+                                <span class="mx-1 text-muted fs-6">/</span>
+                                <span class="text-success fs-4" id="statConfirmed">0</span>
+                            </h3>
+                            <small class="text-muted">Agendamentos</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <!-- Tabela de Serviços Populares -->
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm p-4 h-100">
+                            <h5 class="fw-bold mb-3"><i class="fa-solid fa-fire me-2 text-danger"></i>Serviços Mais Pedidos</h5>
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Nome do Serviço</th>
+                                            <th class="text-center">Quantidade Solicitada</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="popularServicesBody">
+                                        <!-- Preenchido via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Divisão por Status -->
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm p-4 h-100">
+                            <h5 class="fw-bold mb-3"><i class="fa-solid fa-list-check me-2 text-primary"></i>Divisão de Agendamentos</h5>
+                            <div id="statusListContainer" class="d-flex flex-column gap-3 py-2">
+                                <!-- Preenchido via JS com barras de progresso -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Painel 2: Agendamentos -->
+            <div class="tab-pane fade" id="appointments-pane" role="tabpanel">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+                    <div>
+                        <h4 class="fw-bold mb-1 text-secondary">Agenda do Salão</h4>
+                        <p class="text-muted mb-0">Marque novos horários e acompanhe o andamento das tarefas de cada cliente.</p>
+                    </div>
+                    <button class="btn btn-pink py-2 px-3" data-bs-toggle="modal" data-bs-target="#newAppointmentModal" onclick="prepareNewAppointmentModal()">
+                        <i class="fa-solid fa-plus me-2"></i>Novo Agendamento
+                    </button>
+                </div>
+
+                <!-- Lista de Agendamentos -->
+                <div class="card border-0 shadow-sm p-4">
+                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-clock-rotate-left me-2 text-secondary"></i>Lista Geral</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Cliente</th>
+                                    <th>Data / Início</th>
+                                    <th>Horário Fim</th>
+                                    <th>Status Geral</th>
+                                    <th>Serviços Vinculados & Status do Serviço</th>
+                                    <th class="text-end">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="appointmentsTableBody">
+                                <!-- Preenchido via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Painel 3: Clientes -->
+            <div class="tab-pane fade" id="clients-pane" role="tabpanel">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+                    <div>
+                        <h4 class="fw-bold mb-1 text-secondary">Cadastro de Clientes</h4>
+                        <p class="text-muted mb-0">Gerencie a base de clientes do salão da Leila.</p>
+                    </div>
+                    <button class="btn btn-pink py-2 px-3" data-bs-toggle="modal" data-bs-target="#newClientModal">
+                        <i class="fa-solid fa-user-plus me-2"></i>Novo Cliente
+                    </button>
+                </div>
+
+                <div class="card border-0 shadow-sm p-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nome</th>
+                                    <th>E-mail</th>
+                                    <th>Celular / Contato</th>
+                                    <th class="text-end">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clientsTableBody">
+                                <!-- Preenchido via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Painel 4: Serviços -->
+            <div class="tab-pane fade" id="services-pane" role="tabpanel">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+                    <div>
+                        <h4 class="fw-bold mb-1 text-secondary">Catálogo de Serviços</h4>
+                        <p class="text-muted mb-0">Defina os serviços oferecidos, tempo aproximado de duração e o preço.</p>
+                    </div>
+                    <button class="btn btn-pink py-2 px-3" data-bs-toggle="modal" data-bs-target="#newServiceModal">
+                        <i class="fa-solid fa-scissors me-2"></i>Novo Serviço
+                    </button>
+                </div>
+
+                <div class="card border-0 shadow-sm p-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nome do Serviço</th>
+                                    <th>Descrição</th>
+                                    <th>Duração Média</th>
+                                    <th>Preço Cobrado</th>
+                                    <th class="text-end">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="servicesTableBody">
+                                <!-- Preenchido via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAL: Novo Cliente -->
+    <div class="modal fade" id="newClientModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content border-0 shadow">
+                <form id="newClientForm" onsubmit="saveClient(event)">
+                    <div class="modal-header border-bottom-0 bg-light">
+                        <h5 class="modal-title fw-bold text-secondary"><i class="fa-solid fa-user-plus me-2 text-pink"></i>Cadastrar Novo Cliente</h5>
+                        <button type="button" class="btn-close" data-bs-shadow="none" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body py-3">
+                        <div class="mb-3">
+                            <label for="clientName" class="form-label fw-semibold">Nome Completo</label>
+                            <input type="text" class="form-control" id="clientName" required placeholder="Ex: Maria de Souza">
+                        </div>
+                        <div class="mb-3">
+                            <label for="clientEmail" class="form-label fw-semibold">Endereço de E-mail</label>
+                            <input type="email" class="form-control" id="clientEmail" required placeholder="Ex: maria.souza@email.com">
+                        </div>
+                        <div class="mb-3">
+                            <label for="clientPhone" class="form-label fw-semibold">Telefone de Contato</label>
+                            <input type="text" class="form-control" id="clientPhone" required placeholder="Ex: (11) 98888-8888">
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top-0 bg-light">
+                        <button type="button" class="btn btn-secondary py-2 px-3" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-pink py-2 px-4">Salvar Cadastro</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Novo Serviço -->
+    <div class="modal fade" id="newServiceModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content border-0 shadow">
+                <form id="newServiceForm" onsubmit="saveService(event)">
+                    <div class="modal-header border-bottom-0 bg-light">
+                        <h5 class="modal-title fw-bold text-secondary"><i class="fa-solid fa-scissors me-2 text-pink"></i>Cadastrar Novo Serviço</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body py-3">
+                        <div class="mb-3">
+                            <label for="serviceName" class="form-label fw-semibold">Nome do Serviço</label>
+                            <input type="text" class="form-control" id="serviceName" required placeholder="Ex: Escova Progressiva">
+                        </div>
+                        <div class="mb-3">
+                            <label for="serviceDescription" class="form-label fw-semibold">Descrição Rápida (Opcional)</label>
+                            <input type="text" class="form-control" id="serviceDescription" placeholder="Ex: Alinhamento térmico com lavagem inclusa">
+                        </div>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label for="serviceDuration" class="form-label fw-semibold">Duração (Minutos)</label>
+                                <input type="number" class="form-control" id="serviceDuration" required min="5" placeholder="Ex: 60">
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label for="servicePrice" class="form-label fw-semibold">Preço (R$)</label>
+                                <input type="number" step="0.01" class="form-control" id="servicePrice" required min="0" placeholder="Ex: 150.00">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top-0 bg-light">
+                        <button type="button" class="btn btn-secondary py-2 px-3" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-pink py-2 px-4">Salvar Serviço</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Novo Agendamento -->
+    <div class="modal fade" id="newAppointmentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content border-0 shadow">
+                <form id="newAppointmentForm" onsubmit="saveAppointment(event)">
+                    <div class="modal-header border-bottom-0 bg-light">
+                        <h5 class="modal-title fw-bold text-secondary"><i class="fa-solid fa-calendar-plus me-2 text-pink"></i>Marcar Novo Agendamento</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body py-3">
+                        <div class="mb-3">
+                            <label for="appointmentClient" class="form-label fw-semibold">Selecione o Cliente</label>
+                            <select class="form-select" id="appointmentClient" required>
+                                <option value="" disabled selected>Carregando clientes...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Escolha os Serviços desejados</label>
+                            <div id="appointmentServicesList" class="p-3 border rounded bg-light" style="max-height: 150px; overflow-y: auto;">
+                                <!-- Checkboxes via JS -->
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="appointmentStartTime" class="form-label fw-semibold">Data e Hora de Início</label>
+                            <input type="datetime-local" class="form-control" id="appointmentStartTime" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="appointmentNotes" class="form-label fw-semibold">Observações Gerais (Opcional)</label>
+                            <textarea class="form-control" id="appointmentNotes" rows="2" placeholder="Ex: Prefere corte seco. Quer café com leite."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top-0 bg-light">
+                        <button type="button" class="btn btn-secondary py-2 px-3" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-pink py-2 px-4">Concluir Reserva</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Aviso de Sugestão Semanal -->
+    <div class="modal fade" id="suggestionModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-bottom-0 bg-warning bg-opacity-10">
+                    <h5 class="modal-title fw-bold text-warning-emphasis"><i class="fa-solid fa-circle-exclamation me-2"></i>Sugestão Operacional</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-4 text-center">
+                    <div class="text-warning mb-3"><i class="fa-solid fa-calendar-days fa-3x"></i></div>
+                    <h6 class="fw-bold text-secondary mb-3">Conveniência Semanal Detectada!</h6>
+                    <p class="mb-0 text-muted" id="suggestionModalText"></p>
+                </div>
+                <div class="modal-footer border-top-0 bg-light">
+                    <button type="button" class="btn btn-warning py-2 px-4 w-100 fw-bold" data-bs-dismiss="modal">Certo, Compreendido!</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast container para mensagens de sucesso e erros -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="appToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage">
+                    Mensagem informativa!
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 Bundle com Popper.js -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Script de Integração com o Backend -->
+    <script>
+        const API_URL = "http://127.0.0.1:8000";
+        let toastEl;
+        let toastObj;
+
+        window.addEventListener("DOMContentLoaded", () => {
+            toastEl = document.getElementById("appToast");
+            toastObj = new bootstrap.Toast(toastEl, { delay: 4000 });
+            
+            // Coloca a data de hoje como padrão no filtro do relatório
+            const today = new Date().toISOString().split("T")[0];
+            document.getElementById("reportDate").value = today;
+
+            // Inicia carregando os dados do dashboard principal
+            loadDashboard();
+        });
+
+        // Função utilitária para mostrar alertas (Sucesso / Erro)
+        function showNotification(message, isError = false) {
+            const toastBody = document.getElementById("toastMessage");
+            toastBody.innerText = message;
+            toastEl.className = `toast align-items-center text-white border-0 ${isError ? 'bg-danger' : 'bg-success'}`;
+            toastObj.show();
+        }
+
+        // --- DASHBOARD E RELATÓRIOS ---
+        async function loadDashboard() {
+            const refDate = document.getElementById("reportDate").value;
+            let url = `${API_URL}/reports/weekly`;
+            if (refDate) {
+                url += `?reference_date=${refDate}T00:00:00`;
+            }
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("Erro ao consultar dados gerenciais");
+                const data = await response.json();
+
+                // Atualizar os números principais
+                document.getElementById("statRevenue").innerText = `R$ ${data.estimated_revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                document.getElementById("statCompleted").innerText = data.completed_services;
+                document.getElementById("statAppointments").innerText = data.total_appointments;
+                document.getElementById("statConfirmed").innerText = data.confirmed_appointments;
+                document.getElementById("statCancelled").innerText = data.cancelled_appointments;
+
+                // Atualizar tabela de serviços mais pedidos
+                const popularBody = document.getElementById("popularServicesBody");
+                popularBody.innerHTML = "";
+                if (data.most_requested_services.length === 0) {
+                    popularBody.innerHTML = `<tr><td colspan="2" class="text-center text-muted">Nenhum serviço solicitado na semana.</td></tr>`;
+                } else {
+                    data.most_requested_services.forEach(svc => {
+                        popularBody.innerHTML += `
+                            <tr>
+                                <td><i class="fa-solid fa-check text-pink me-2"></i><strong>${svc.name}</strong></td>
+                                <td class="text-center"><span class="badge rounded-pill bg-light text-dark border px-3 py-2 fs-6 fw-bold">${svc.count} pedidos</span></td>
+                            </tr>
+                        `;
+                    });
+                }
+
+                // Atualizar barras de status dos agendamentos
+                const statusContainer = document.getElementById("statusListContainer");
+                statusContainer.innerHTML = "";
+                
+                const total = data.total_appointments || 1; // previne divisão por zero no progresso
+                const statusMap = data.appointments_by_status;
+                const statusColors = {
+                    solicitado: 'primary',
+                    confirmado: 'success',
+                    cancelado: 'danger',
+                    concluido: 'warning'
+                };
+
+                Object.keys(statusMap).forEach(key => {
+                    const count = statusMap[key];
+                    const percent = Math.round((count / total) * 100);
+                    const color = statusColors[key] || 'secondary';
+                    const label = key.toUpperCase();
+
+                    statusContainer.innerHTML += `
+                        <div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="fw-semibold small text-secondary">${label}</span>
+                                <span class="fw-bold small">${count} (${percent}%)</span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar bg-${color}" role="progressbar" style="width: ${percent}%" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+            } catch (err) {
+                console.error(err);
+                showNotification("Não foi possível carregar as informações do dashboard.", true);
+            }
+        }
+
+        // --- CLIENTES ---
+        async function loadClients() {
+            try {
+                const response = await fetch(`${API_URL}/clients`);
+                if (!response.ok) throw new Error();
+                const clients = await response.json();
+
+                const tbody = document.getElementById("clientsTableBody");
+                tbody.innerHTML = "";
+
+                if (clients.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Nenhum cliente cadastrado.</td></tr>`;
+                    return;
+                }
+
+                clients.forEach(c => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>#${c.id}</strong></td>
+                            <td>${c.name}</td>
+                            <td>${c.email}</td>
+                            <td>${c.phone}</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteClient(${c.id})"><i class="fa-solid fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                showNotification("Não foi possível carregar a lista de clientes.", true);
+            }
+        }
+
+        async function saveClient(event) {
+            event.preventDefault();
+            const name = document.getElementById("clientName").value;
+            const email = document.getElementById("clientEmail").value;
+            const phone = document.getElementById("clientPhone").value;
+
+            try {
+                const response = await fetch(`${API_URL}/clients`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, email, phone })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || "Erro ao salvar cliente.");
+                }
+
+                showNotification("Cliente cadastrado com sucesso!");
+                bootstrap.Modal.getInstance(document.getElementById("newClientModal")).hide();
+                document.getElementById("newClientForm").reset();
+                loadClients();
+            } catch (err) {
+                showNotification(err.message, true);
+            }
+        }
+
+        async function deleteClient(id) {
+            if (!confirm("Tem certeza que deseja remover este cliente?")) return;
+            try {
+                const response = await fetch(`${API_URL}/clients/${id}`, { method: "DELETE" });
+                if (!response.ok) throw new Error();
+                showNotification("Cliente removido com sucesso!");
+                loadClients();
+            } catch (err) {
+                showNotification("Não foi possível remover o cliente selecionado.", true);
+            }
+        }
+
+        // --- SERVIÇOS ---
+        async function loadServices() {
+            try {
+                const response = await fetch(`${API_URL}/services`);
+                if (!response.ok) throw new Error();
+                const services = await response.json();
+
+                const tbody = document.getElementById("servicesTableBody");
+                tbody.innerHTML = "";
+
+                if (services.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">Nenhum serviço cadastrado no catálogo.</td></tr>`;
+                    return;
+                }
+
+                services.forEach(s => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>#${s.id}</strong></td>
+                            <td><strong>${s.name}</strong></td>
+                            <td class="text-muted small">${s.description || 'Sem descrição'}</td>
+                            <td><i class="fa-solid fa-hourglass-half me-1 text-pink"></i>${s.duration} min</td>
+                            <td><strong>R$ ${s.price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteService(${s.id})"><i class="fa-solid fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                showNotification("Não foi possível carregar a lista de serviços.", true);
+            }
+        }
+
+        async function saveService(event) {
+            event.preventDefault();
+            const name = document.getElementById("serviceName").value;
+            const description = document.getElementById("serviceDescription").value;
+            const duration = parseInt(document.getElementById("serviceDuration").value);
+            const price = parseFloat(document.getElementById("servicePrice").value);
+
+            try {
+                const response = await fetch(`${API_URL}/services`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, description, duration, price })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || "Erro ao salvar serviço.");
+                }
+
+                showNotification("Serviço adicionado ao catálogo!");
+                bootstrap.Modal.getInstance(document.getElementById("newServiceModal")).hide();
+                document.getElementById("newServiceForm").reset();
+                loadServices();
+            } catch (err) {
+                showNotification(err.message, true);
+            }
+        }
+
+        async function deleteService(id) {
+            if (!confirm("Tem certeza que deseja remover este serviço do catálogo?")) return;
+            try {
+                const response = await fetch(`${API_URL}/services/${id}`, { method: "DELETE" });
+                if (!response.ok) throw new Error();
+                showNotification("Serviço removido com sucesso!");
+                loadServices();
+            } catch (err) {
+                showNotification("Não foi possível remover o serviço selecionado.", true);
+            }
+        }
+
+        // --- AGENDAMENTOS ---
+        async function loadAppointmentsPage() {
+            try {
+                const response = await fetch(`${API_URL}/appointments`);
+                if (!response.ok) throw new Error();
+                const list = await response.json();
+
+                const tbody = document.getElementById("appointmentsTableBody");
+                tbody.innerHTML = "";
+
+                if (list.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">Nenhum agendamento marcado.</td></tr>`;
+                    return;
+                }
+
+                list.forEach(app => {
+                    const startTimeStr = new Date(app.start_time).toLocaleString('pt-BR');
+                    const endTimeStr = new Date(app.end_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    
+                    // Constrói os serviços com seletores de status individual
+                    let servicesHtml = '<div class="d-flex flex-column gap-2">';
+                    app.services.forEach(svc => {
+                        servicesHtml += `
+                            <div class="d-flex align-items-center justify-content-between p-2 rounded border bg-light gap-2">
+                                <span class="small fw-semibold text-truncate" style="max-width: 140px;" title="${svc.name}">${svc.name}</span>
+                                <select class="form-select form-select-sm w-auto py-0 px-1" onchange="changeServiceStatus(${app.id}, ${svc.service_id}, this.value)">
+                                    <option value="pendente" ${svc.status === 'pendente' ? 'selected' : ''}>Pendente</option>
+                                    <option value="em_andamento" ${svc.status === 'em_andamento' ? 'selected' : ''}>Em Andamento</option>
+                                    <option value="concluido" ${svc.status === 'concluido' ? 'selected' : ''}>Concluído</option>
+                                    <option value="cancelado" ${svc.status === 'cancelado' ? 'selected' : ''}>Cancelado</option>
+                                </select>
+                            </div>
+                        `;
+                    });
+                    servicesHtml += '</div>';
+
+                    // Botões de Ações baseados no status geral
+                    let actionButtons = "";
+                    if (app.status === "solicitado") {
+                        actionButtons += `
+                            <button class="btn btn-sm btn-success me-1 py-1" onclick="confirmAppointment(${app.id})" title="Confirmar Agendamento">
+                                <i class="fa-solid fa-calendar-check me-1"></i>Confirmar
+                            </button>
+                        `;
+                    }
+                    actionButtons += `
+                        <button class="btn btn-sm btn-outline-danger py-1" onclick="deleteAppointment(${app.id})" title="Remover Agendamento">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    `;
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>#${app.id}</strong></td>
+                            <td>
+                                <strong class="text-pink">${app.client_name}</strong>
+                                ${app.notes ? `<br><small class="text-muted text-truncate d-inline-block" style="max-width: 160px;" title="${app.notes}">Nota: ${app.notes}</small>` : ''}
+                            </td>
+                            <td><span class="badge bg-white text-dark border px-2 py-1">${startTimeStr}</span></td>
+                            <td><span class="badge bg-white text-dark border px-2 py-1">${endTimeStr}</span></td>
+                            <td><span class="status-badge badge badge-${app.status}">${app.status.toUpperCase()}</span></td>
+                            <td>${servicesHtml}</td>
+                            <td class="text-end text-nowrap">${actionButtons}</td>
+                        </tr>
+                    `;
+                });
+
+            } catch (err) {
+                showNotification("Não foi possível listar os agendamentos.", true);
+            }
+        }
+
+        // Carrega as opções de clientes e serviços no formulário de Novo Agendamento
+        async function prepareNewAppointmentModal() {
+            try {
+                // 1. Carregar Clientes
+                const resClients = await fetch(`${API_URL}/clients`);
+                const clients = await resClients.json();
+                const clientSelect = document.getElementById("appointmentClient");
+                clientSelect.innerHTML = `<option value="" disabled selected>Escolha o cliente...</option>`;
+                
+                clients.forEach(c => {
+                    clientSelect.innerHTML += `<option value="${c.id}">${c.name} (${c.phone})</option>`;
+                });
+
+                // 2. Carregar Serviços do salão
+                const resServices = await fetch(`${API_URL}/services`);
+                const services = await resServices.json();
+                const servicesListDiv = document.getElementById("appointmentServicesList");
+                servicesListDiv.innerHTML = "";
+
+                if (services.length === 0) {
+                    servicesListDiv.innerHTML = `<p class="text-muted text-center mb-0 small py-2">Por favor, cadastre serviços no salão antes.</p>`;
+                    return;
+                }
+
+                services.forEach(s => {
+                    servicesListDiv.innerHTML += `
+                        <div class="form-check py-1 border-bottom border-light">
+                            <input class="form-check-input" type="checkbox" name="selectedServices" value="${s.id}" id="chkService_${s.id}">
+                            <label class="form-check-label d-flex justify-content-between w-100" for="chkService_${s.id}">
+                                <span><strong>${s.name}</strong></span>
+                                <span class="text-muted small">R$ ${s.price.toFixed(2)} (${s.duration}min)</span>
+                            </label>
+                        </div>
+                    `;
+                });
+
+            } catch (err) {
+                showNotification("Erro ao carregar dados complementares para o agendamento.", true);
+            }
+        }
+
+        // Salvar Agendamento
+        async function saveAppointment(event) {
+            event.preventDefault();
+            
+            const clientId = parseInt(document.getElementById("appointmentClient").value);
+            const startTime = document.getElementById("appointmentStartTime").value;
+            const notes = document.getElementById("appointmentNotes").value;
+
+            const selectedCheckboxes = document.querySelectorAll('input[name="selectedServices"]:checked');
+            const serviceIds = Array.from(selectedCheckboxes).map(chk => parseInt(chk.value));
+
+            if (!clientId) {
+                showNotification("Selecione um cliente válido.", true);
+                return;
+            }
+            if (serviceIds.length === 0) {
+                showNotification("Selecione ao menos um serviço.", true);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/appointments`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        client_id: clientId,
+                        service_ids: serviceIds,
+                        start_time: startTime,
+                        notes: notes
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || "Erro ao marcar horário.");
+                }
+
+                const resData = await response.json();
+                
+                showNotification("Horário reservado com sucesso!");
+                bootstrap.Modal.getInstance(document.getElementById("newAppointmentModal")).hide();
+                document.getElementById("newAppointmentForm").reset();
+                
+                // Recarregar tabelas e dados
+                loadAppointmentsPage();
+                loadDashboard();
+
+                // Se houver uma sugestão semanal, exibe o Modal informativo correspondente!
+                if (resData.suggestion) {
+                    document.getElementById("suggestionModalText").innerText = resData.suggestion;
+                    const sugModal = new bootstrap.Modal(document.getElementById("suggestionModal"));
+                    sugModal.show();
+                }
+
+            } catch (err) {
+                showNotification(err.message, true);
+            }
+        }
+
+        // Confirmar Agendamento Geral
+        async function confirmAppointment(id) {
+            try {
+                const response = await fetch(`${API_URL}/appointments/${id}/confirm`, { method: "POST" });
+                if (!response.ok) throw new Error();
+                showNotification("Agendamento confirmado!");
+                loadAppointmentsPage();
+                loadDashboard();
+            } catch (err) {
+                showNotification("Não foi possível confirmar o agendamento.", true);
+            }
+        }
+
+        // Alterar status de serviço individual dentro do agendamento
+        async function changeServiceStatus(appointmentId, serviceId, newStatus) {
+            try {
+                const response = await fetch(`${API_URL}/appointments/${appointmentId}/services/${serviceId}/status`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                if (!response.ok) throw new Error();
+                
+                showNotification("Status do serviço atualizado!");
+                loadAppointmentsPage();
+                loadDashboard();
+            } catch (err) {
+                showNotification("Erro ao atualizar o status do serviço.", true);
+            }
+        }
+
+        // Remover/Deletar agendamento
+        async function deleteAppointment(id) {
+            if (!confirm("Deseja realmente excluir este agendamento?")) return;
+            try {
+                const response = await fetch(`${API_URL}/appointments/${id}`, { method: "DELETE" });
+                if (!response.ok) throw new Error();
+                showNotification("Agendamento removido.");
+                loadAppointmentsPage();
+                loadDashboard();
+            } catch (err) {
+                showNotification("Erro ao excluir o agendamento do salão.", true);
+            }
+        }
+    </script>
+</body>
+</html>

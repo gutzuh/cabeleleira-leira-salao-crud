@@ -27,6 +27,15 @@ app.include_router(beauty_services.router)
 app.include_router(appointments.router)
 app.include_router(reports.router)
 
+import os
+from fastapi.responses import HTMLResponse
+
 @app.get("/", include_in_schema=False)
-async def redirect_to_docs():
-    return RedirectResponse(url="/docs")
+async def read_frontend():
+    # Carrega e exibe a página HTML simples do frontend
+    template_path = os.path.join(os.path.dirname(__file__), "templates", "index.html")
+    if not os.path.exists(template_path):
+        return HTMLResponse(content="<h1>Erro: index.html não foi encontrado!</h1>", status_code=404)
+    with open(template_path, "r", encoding="utf-8") as f:
+        html_content = f.read()
+    return HTMLResponse(content=html_content)
