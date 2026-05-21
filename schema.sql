@@ -27,8 +27,9 @@ CREATE TABLE appointments (
     client_id INTEGER NOT NULL,
     start_time DATETIME NOT NULL,
     end_time DATETIME NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'solicitado', -- solicitado, confirmado, cancelado, concluido
+    status VARCHAR(20) NOT NULL DEFAULT 'solicitado' CHECK (status IN ('solicitado','confirmado','cancelado','concluido')), -- solicitado, confirmado, cancelado, concluido
     notes VARCHAR(500) NULL,
+    CHECK (julianday(end_time) > julianday(start_time)),
     FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
 );
 
@@ -47,17 +48,4 @@ CREATE TABLE appointment_services (
     FOREIGN KEY (service_id) REFERENCES beauty_services(id) ON DELETE CASCADE
 );
 
--- Dados Seed 
-INSERT INTO beauty_services (name, description, duration, price) VALUES 
-('Corte Feminino', 'Lavagem, corte de pontas ou franja, modelagem e secagem simples.', 45, 80.00),
-('Corte Masculino', 'Lavagem e corte clássico ou degradê com máquina/tesoura.', 30, 50.00),
-('Manicure', 'Corte, lixamento, remoção de cutículas e esmaltação simples.', 40, 40.00),
-('Pedicure', 'Corte, lixamento, cuidados com os pés e esmaltação simples.', 50, 45.00),
-('Escova Progressiva', 'Alinhamento térmico capilar de alta performance com lavagem especial.', 120, 250.00),
-('Hidratação Loreal', 'Nutrição profunda e selamento de cutículas capilares.', 60, 120.00);
-
--- Inserção de clientes fictícios para testes operacionais
-INSERT INTO clients (name, email, phone) VALUES
-('Maria Silva', 'maria.silva@email.com', '(11) 98888-7777'),
-('João Santos', 'joao.santos@email.com', '(11) 97777-6666'),
-('Ana Oliveira', 'ana.oliveira@email.com', '(21) 96666-5555');
+CREATE INDEX IF NOT EXISTS idx_appointment_services_service_id ON appointment_services(service_id);
